@@ -1,6 +1,7 @@
 import { mergeOperations, projectReception } from './engine.mjs';
 import { projectLending } from './lending.mjs';
 import { makeEnvelope, readEnvelope, qrText, FILE_BYTE_LIMIT } from './transport.mjs';
+import { createCameraScanner } from './camera.mjs';
 
 const $ = id => document.getElementById(id);
 const appId = document.body.dataset.app;
@@ -95,6 +96,7 @@ function preview(text) {
 }
 async function readFile(input, image) {
   const file = input.files?.[0]; if (!file) return;
+  if (scanner.isActive()) scanner.stop();
   incoming = null; $('import-preview').hidden = true;
   try {
     if (file.size > (image ? 8000000 : FILE_BYTE_LIMIT)) throw new Error('This file is too large.');
@@ -113,6 +115,35 @@ async function readFile(input, image) {
 }
 $('qr-file').onchange = e => readFile(e.target, true);
 $('json-file').onchange = e => readFile(e.target, false);
+
+// Camera decoding uses the same validation/preview/confirmation as files.
+const cameraVideo = $('camera-video');
+const scanner = createCameraScanner({
+  getUserMedia: constraints => {
+    if (!globalThis.isSecureContext || !navigator.mediaDevices?.getUserMedia)
+      return Promise.reject(Object.assign(new Error('Unsupported camera context'), { name: 'NotSupportedError' }));
+    return navigator.mediaDevices.getUserMedia(constraints);
+  },
+  jsQR: globalThis.jsQR,
+  requestAnimationFrame: globalThis.requestAnimationFrame.bind(globalThis),
+  cancelAnimationFrame: globalThis.cancelAnimationFrame.bind(globalThis),
+  video: cameraVideo,
+});
+function cameraStatus(message, { state, error = false }) {
+  const active = state === 'starting' || state === 'scanning';
+  $('start-camera').hidden = active;
+  $('stop-camera').hidden = !active;
+  cameraVideo.hidden = !active;
+  $('camera-status').textContent = message;
+  status(message, error);
+}
+$('start-camera').onclick = () => {
+  incoming = null; $('import-preview').hidden = true;
+  scanner.start(preview, cameraStatus);
+};
+$('stop-camera').onclick = () => scanner.stop();
+document.addEventListener('visibilitychange', () => { if (document.hidden) scanner.stop(); });
+addEventListener('pagehide', () => scanner.stop());
 $('cancel-import').onclick = () => { incoming = null; $('import-preview').hidden = true; status('Import cancelled. No records changed.'); };
 $('confirm-import').onclick = () => {
   if (!incoming) return;

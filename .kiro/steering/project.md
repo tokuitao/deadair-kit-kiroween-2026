@@ -50,7 +50,10 @@ Never claim global double-allocation prevention while disconnected.
 - npm run build creates dist with local vendor assets and their licenses.
 - npm test runs domain and transport tests.
 - Initial connected loading is required for the service worker cache.
-- Live camera scanning and authenticated/encrypted peer exchange are pending.
+- Live camera scanning is explicit, local, video-only, and shares import validation.
+- Stop tracks on cancel (including late permission results), hidden/pagehide, decode and errors.
+- Camera logic is in camera.mjs. Physical-camera validation and authenticated/encrypted peer exchange are pending.
+- Ten typical attendee records exceed one QR; bounded multi-QR transfer is the next practical-scope requirement.
 
 ## Working boundaries
 Work only in this checkout. Do not read parent history, unrelated projects,
