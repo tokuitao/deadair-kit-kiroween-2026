@@ -1,7 +1,8 @@
 import { mergeOperations, projectReception } from './engine.mjs';
 import { projectLending } from './lending.mjs';
-import { makeEnvelope, readEnvelope, qrText, FILE_BYTE_LIMIT } from './transport.mjs';
+import { makeEnvelope, readEnvelope, FILE_BYTE_LIMIT } from './transport.mjs';
 import { createCameraScanner } from './camera.mjs';
+import { createQrFrames, createQrReceiver } from './qr-sequence.mjs';
 
 const $ = id => document.getElementById(id);
 const appId = document.body.dataset.app;
@@ -10,6 +11,8 @@ const candidate = params.get('workspace') || 'field-demo';
 const workspaceId = /^[a-zA-Z0-9_-]{1,64}$/.test(candidate) ? candidate : 'field-demo';
 const key = `deadair.v1.${appId}.${workspaceId}`;
 let actorId, operations = [], incoming = null, storageBroken = false;
+let outgoingFrames = [], outgoingIndex = 0, playTimer = null, sendRevision = 0, receiveRevision = 0;
+const receiver = createQrReceiver(appId, workspaceId);
 function status(message, error = false) { $('status').textContent = message; $('status').classList.toggle('error', error); }
 try {
   actorId = localStorage.getItem('deadair.device.id') || crypto.randomUUID();
@@ -30,7 +33,7 @@ function event(kind, payload) { return { id: crypto.randomUUID(), appId, workspa
 function commit(next, message) {
   if (storageBroken) throw new Error('Storage is unavailable. Existing data has not been overwritten.');
   const envelope = readEnvelope(JSON.stringify(makeEnvelope(appId, workspaceId, next)), appId, workspaceId);
-  localStorage.setItem(key, JSON.stringify(envelope)); operations = envelope.operations; render(); $('qr-panel').hidden = true; status(message);
+  localStorage.setItem(key, JSON.stringify(envelope)); operations = envelope.operations; render(); sendRevision++; stopOutgoing(); outgoingFrames = []; $('qr-panel').hidden = true; status(message);
 }
 function add(kind, payload, message) { commit(mergeOperations(operations, [event(kind, payload)]), message); }
 $('record-form').onsubmit = e => {
@@ -72,45 +75,100 @@ function render() {
 $('search').oninput = render;
 function download(blob, filename) { const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 30000); }
 $('export-json').onclick = () => download(new Blob([JSON.stringify(makeEnvelope(appId, workspaceId, operations))], { type: 'application/json' }), `deadair-${appId}-${workspaceId}.json`);
-$('show-qr').onclick = () => {
-  $('qr-panel').hidden = true;
+function stopOutgoing() {
+  if (playTimer !== null) { clearInterval(playTimer); playTimer = null; }
+  $('play-qr').textContent = 'Play sequence';
+  $('play-qr').setAttribute('aria-pressed', 'false');
+}
+function drawOutgoing() {
+  if (!outgoingFrames.length) return;
+  globalThis.qrcode.stringToBytes = value => [...new TextEncoder().encode(value)];
+  const qr = globalThis.qrcode(0, 'M'); qr.addData(outgoingFrames[outgoingIndex]); qr.make();
+  const count = qr.getModuleCount(), scale = 5, margin = 4, canvas = $('qr');
+  canvas.width = canvas.height = (count + margin * 2) * scale;
+  const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#000';
+  for (let y = 0; y < count; y++) for (let x = 0; x < count; x++) if (qr.isDark(y, x)) ctx.fillRect((x + margin) * scale, (y + margin) * scale, scale, scale);
+  $('qr-info').textContent = `QR ${outgoingIndex + 1} of ${outgoingFrames.length} · ${operations.length} records · ${appId} / ${workspaceId}`;
+  $('sequence-controls').hidden = outgoingFrames.length < 2;
+}
+$('show-qr').onclick = async () => {
+  const revision = ++sendRevision;
+  stopOutgoing(); $('qr-panel').hidden = true; $('show-qr').disabled = true;
+  if (scanner.isActive()) scanner.stop();
   try {
     if (!operations.length) throw new Error('Create a record before making a handoff.');
-    const text = qrText(makeEnvelope(appId, workspaceId, operations));
-    globalThis.qrcode.stringToBytes = value => [...new TextEncoder().encode(value)];
-    const qr = globalThis.qrcode(0, 'M'); qr.addData(text); qr.make();
-    const count = qr.getModuleCount(), scale = 5, margin = 4, canvas = $('qr');
-    canvas.width = canvas.height = (count + margin * 2) * scale;
-    const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#000';
-    for (let y = 0; y < count; y++) for (let x = 0; x < count; x++) if (qr.isDark(y, x)) ctx.fillRect((x + margin) * scale, (y + margin) * scale, scale, scale);
-    $('qr-info').textContent = `${operations.length} records · ${new TextEncoder().encode(text).length} bytes · ${appId} / ${workspaceId}`;
-    $('qr-panel').hidden = false; status('QR handoff created from the records on this device.');
-  } catch (error) { status(error.message, true); }
+    const frames = await createQrFrames(makeEnvelope(appId, workspaceId, operations), { compress: !$('uncompressed-qr').checked });
+    if (revision !== sendRevision) return;
+    outgoingFrames = frames; outgoingIndex = 0; drawOutgoing(); $('qr-panel').hidden = false;
+    status(frames.length === 1 ? 'Show this QR to the receiving device.' : `${frames.length} QR parts ready. Choose Play sequence and let the receiver collect every part.`);
+  } catch (error) { if (revision === sendRevision) status(error.message, true); }
+  finally { $('show-qr').disabled = false; }
 };
-$('download-qr').onclick = () => $('qr').toBlob(blob => { if (blob) download(blob, `deadair-${appId}-handoff.png`); }, 'image/png');
+$('uncompressed-qr').onchange = () => { sendRevision++; stopOutgoing(); outgoingFrames = []; $('qr-panel').hidden = true; status('Choose Create handoff QR to use the selected format.'); };
+$('previous-qr').onclick = () => { stopOutgoing(); outgoingIndex = (outgoingIndex + outgoingFrames.length - 1) % outgoingFrames.length; drawOutgoing(); };
+$('next-qr').onclick = () => { stopOutgoing(); outgoingIndex = (outgoingIndex + 1) % outgoingFrames.length; drawOutgoing(); };
+$('play-qr').onclick = () => {
+  if (playTimer !== null) return stopOutgoing();
+  if (outgoingFrames.length < 2) return;
+  $('play-qr').textContent = 'Pause sequence'; $('play-qr').setAttribute('aria-pressed', 'true');
+  playTimer = setInterval(() => { outgoingIndex = (outgoingIndex + 1) % outgoingFrames.length; drawOutgoing(); }, 1300);
+};
+$('download-qr').onclick = () => $('qr').toBlob(blob => { if (blob) download(blob, `deadair-${appId}-part-${outgoingIndex + 1}-of-${outgoingFrames.length}.png`); }, 'image/png');
 function preview(text) {
-  incoming = readEnvelope(text, appId, workspaceId);
-  const merged = mergeOperations(operations, incoming.operations);
+  const candidate = readEnvelope(text, appId, workspaceId);
+  const merged = mergeOperations(operations, candidate.operations);
+  incoming = candidate;
   $('preview-text').textContent = `${incoming.operations.length} records in this handoff. ${merged.length - operations.length} new records will be added to ${workspaceId}.`;
   $('import-preview').hidden = false; status('Handoff read. Review it, then import.');
 }
+function showReceiveProgress(progress) {
+  $('receive-panel').hidden = progress.total < 2 && !progress.received;
+  $('receive-progress').textContent = progress.complete
+    ? `All ${progress.total} QR parts verified. Review the handoff before importing.`
+    : `Received ${progress.received} of ${progress.total} QR parts. Keep scanning; repeats are safe.`;
+}
+function clearQrCollection() { receiveRevision++; receiver.reset(); $('receive-panel').hidden = true; }
+function resetReceived() {
+  clearQrCollection(); incoming = null; $('import-preview').hidden = true;
+}
+async function receiveQr(text) {
+  const revision = receiveRevision;
+  try {
+    const result = await receiver.accept(text);
+    if (revision !== receiveRevision) return true;
+    showReceiveProgress(result);
+    if (result.complete) { preview(JSON.stringify(result.envelope)); return false; }
+    const message = `Received ${result.received} of ${result.total} QR parts. Keep scanning.`;
+    status(message); $('camera-status').textContent = message;
+    return true;
+  } catch (error) {
+    if (revision !== receiveRevision) return true;
+    showReceiveProgress(receiver.progress()); throw error;
+  }
+}
+$('reset-receive').onclick = () => { scanner.stop(); resetReceived(); status('Received QR parts cleared. Your saved records are unchanged.'); };
 async function readFile(input, image) {
   const file = input.files?.[0]; if (!file) return;
+  let revision = receiveRevision;
   if (scanner.isActive()) scanner.stop();
   incoming = null; $('import-preview').hidden = true;
   try {
     if (file.size > (image ? 8000000 : FILE_BYTE_LIMIT)) throw new Error('This file is too large.');
-    if (!image) preview(await file.text());
-    else {
+    if (!image) {
+      const text = await file.text();
+      if (revision !== receiveRevision) return;
+      preview(text); clearQrCollection(); revision = receiveRevision;
+    } else {
       const bitmap = await createImageBitmap(file);
       if (bitmap.width * bitmap.height > 16000000) { bitmap.close(); throw new Error('QR image is too large.'); }
       const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
       const ctx = canvas.getContext('2d', { willReadFrequently: true }); ctx.drawImage(bitmap, 0, 0); bitmap.close();
       const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height); const qr = globalThis.jsQR(pixels.data, pixels.width, pixels.height);
       if (!qr) throw new Error('No readable QR found. Use the original PNG or the JSON backup.');
-      preview(qr.data);
+      if (revision !== receiveRevision) return;
+      await receiveQr(qr.data);
     }
-  } catch (error) { status(error.message, true); }
+  } catch (error) { if (revision === receiveRevision) status(error.message, true); }
   finally { input.value = ''; }
 }
 $('qr-file').onchange = e => readFile(e.target, true);
@@ -138,16 +196,18 @@ function cameraStatus(message, { state, error = false }) {
   status(message, error);
 }
 $('start-camera').onclick = () => {
+  if (receiver.progress().complete) return status('Review the handoff or choose Reset received QR before scanning another.');
+  stopOutgoing(); $('qr-panel').hidden = true;
   incoming = null; $('import-preview').hidden = true;
-  scanner.start(preview, cameraStatus);
+  scanner.start(receiveQr, cameraStatus);
 };
 $('stop-camera').onclick = () => scanner.stop();
-document.addEventListener('visibilitychange', () => { if (document.hidden) scanner.stop(); });
-addEventListener('pagehide', () => scanner.stop());
-$('cancel-import').onclick = () => { incoming = null; $('import-preview').hidden = true; status('Import cancelled. No records changed.'); };
+document.addEventListener('visibilitychange', () => { if (document.hidden) { scanner.stop(); stopOutgoing(); } });
+addEventListener('pagehide', () => { scanner.stop(); stopOutgoing(); });
+$('cancel-import').onclick = () => { resetReceived(); status('Import cancelled. No records changed.'); };
 $('confirm-import').onclick = () => {
   if (!incoming) return;
-  try { const next = mergeOperations(operations, incoming.operations), added = next.length - operations.length; commit(next, `Handoff imported. ${added} new record${added === 1 ? '' : 's'} saved.`); incoming = null; $('import-preview').hidden = true; }
+  try { const next = mergeOperations(operations, incoming.operations), added = next.length - operations.length; commit(next, `Handoff imported. ${added} new record${added === 1 ? '' : 's'} saved.`); resetReceived(); }
   catch (error) { status(error.message, true); }
 };
 if (storageBroken) document.querySelectorAll('form button,#confirm-import').forEach(button => { button.disabled = true; });

@@ -45,7 +45,7 @@ export function createCameraScanner(deps) {
     return jsQR(pixels.data, w, h)?.data || null;
   }
 
-  function loop(run) {
+  async function loop(run) {
     if (run !== generation || state !== 'scanning') return;
     rafId = null;
     try {
@@ -54,14 +54,19 @@ export function createCameraScanner(deps) {
         lastDecodeTime = now;
         const data = decodeFrame();
         if (data) {
-          // Release hardware before the application validates the decoded text.
-          stop('QR code read. Camera stopped.');
-          try { onDecode(data); }
-          catch (error) { notify('This QR could not be imported: ' + error.message, true); }
-          return;
+          // A multipart handler returns true to collect another frame. Awaiting
+          // it serializes validation; no queue of frame callbacks can accumulate.
+          let keepScanning;
+          try { keepScanning = await onDecode(data); }
+          catch (error) {
+            if (run === generation) { stop(); notify('This QR could not be imported: ' + error.message, true); }
+            return;
+          }
+          if (run !== generation || state !== 'scanning') return;
+          if (keepScanning !== true) { stop('Handoff ready. Review it, then import. Camera stopped.'); return; }
         }
       }
-      rafId = requestAnimationFrame(() => loop(run));
+      if (run === generation && state === 'scanning') rafId = requestAnimationFrame(() => loop(run));
     } catch (error) { fail(error); }
   }
 
