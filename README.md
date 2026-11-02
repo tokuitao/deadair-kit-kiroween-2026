@@ -2,6 +2,8 @@
 
 Two small field apps that keep records locally and exchange them through QR images or JSON files. Built as a new Kiroween 2026 project.
 
+[Open the working prototype](https://tokuitao.github.io/deadair-kit-kiroween-2026/) · [Reception](https://tokuitao.github.io/deadair-kit-kiroween-2026/apps/reception/) · [Equipment lending](https://tokuitao.github.io/deadair-kit-kiroween-2026/apps/lending/)
+
 - **Reception:** check attendees in, search the desk list, and retain repeated check-ins in an audit trail while counting each attendee once.
 - **Equipment lending:** record loans and returns, then display overlapping loans after disconnected devices exchange their histories.
 
