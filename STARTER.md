@@ -38,9 +38,10 @@ These origins are a development technique, not physical-device validation.
    read `.kiro/steering/project.md` and the requirements, write a small design
    and task list, then propose the smallest implementation. Use actual
    `read`, `write` and `shell` tools; approve only the intended repository scope.
-3. For a new operation kind or app, extend the explicit schema in `engine.mjs`
-   and its envelope validation. Add a pure projection like `lending.mjs`.
-   The current schema is deliberately specific: a new app ID alone is not
+3. For a new operation kind or app, extend the explicit app/kind and payload
+   checks in `transport.mjs`. Keep `engine.mjs` as the generic operation-shape,
+   namespace and union layer; add a pure projection like `lending.mjs`.
+   Envelope validation is deliberately specific: a new app ID alone is not
    sufficient to add an arbitrary workflow.
 4. Put its entry point in a new `apps/<workflow>/` folder. Wire the fields and
    projection in `app.mjs`, preserving safe text rendering and shared transport.

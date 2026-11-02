@@ -1,0 +1,31 @@
+{
+  "deadair": 1,
+  "appId": "reception",
+  "workspaceId": "judge-sample-v1",
+  "operations": [
+    {
+      "id": "sample-reception-b-001",
+      "appId": "reception",
+      "workspaceId": "judge-sample-v1",
+      "actorId": "sample-desk-b",
+      "kind": "check-in",
+      "payload": {
+        "attendeeId": "TICKET-102",
+        "name": "Sam Rivera"
+      },
+      "createdAt": "2026-11-02T12:55:29.740Z"
+    },
+    {
+      "id": "sample-reception-b-002",
+      "appId": "reception",
+      "workspaceId": "judge-sample-v1",
+      "actorId": "sample-desk-b",
+      "kind": "check-in",
+      "payload": {
+        "attendeeId": "TICKET-104",
+        "name": "Jules Chen"
+      },
+      "createdAt": "2026-11-02T12:55:29.740Z"
+    }
+  ]
+}

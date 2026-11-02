@@ -1,0 +1,19 @@
+{
+  "deadair": 1,
+  "appId": "lending",
+  "workspaceId": "judge-sample-v1",
+  "operations": [
+    {
+      "id": "sample-loan-alex",
+      "appId": "lending",
+      "workspaceId": "judge-sample-v1",
+      "actorId": "sample-desk-a",
+      "kind": "loan",
+      "payload": {
+        "itemId": "DRILL-01",
+        "borrower": "Alex"
+      },
+      "createdAt": "2026-11-02T12:55:29.740Z"
+    }
+  ]
+}

@@ -24,6 +24,10 @@ camera lifecycle. Their distinct interfaces live in `apps/reception` and
 [Reuse the starter with Kiro](STARTER.md) explains the shared modules, adaptation
 steps and the completed specification-guided camera extension.
 
+[Try the judge walkthrough](JUDGE-GUIDE.md) with a small fictional sample pack;
+[read the actual Kiro workflow](KIRO-WORKFLOW.md) and its independently found
+counterexamples.
+
 ## Run locally
 
 Requires Node.js 24 or newer.

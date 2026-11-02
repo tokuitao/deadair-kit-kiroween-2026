@@ -1,0 +1,43 @@
+{
+  "deadair": 1,
+  "appId": "reception",
+  "workspaceId": "judge-sample-v1",
+  "operations": [
+    {
+      "id": "sample-reception-a-001",
+      "appId": "reception",
+      "workspaceId": "judge-sample-v1",
+      "actorId": "sample-desk-a",
+      "kind": "check-in",
+      "payload": {
+        "attendeeId": "TICKET-101",
+        "name": "Alex Morgan"
+      },
+      "createdAt": "2026-11-02T12:55:29.740Z"
+    },
+    {
+      "id": "sample-reception-a-002",
+      "appId": "reception",
+      "workspaceId": "judge-sample-v1",
+      "actorId": "sample-desk-a",
+      "kind": "check-in",
+      "payload": {
+        "attendeeId": "TICKET-102",
+        "name": "Sam Rivera"
+      },
+      "createdAt": "2026-11-02T12:55:29.740Z"
+    },
+    {
+      "id": "sample-reception-a-003",
+      "appId": "reception",
+      "workspaceId": "judge-sample-v1",
+      "actorId": "sample-desk-a",
+      "kind": "check-in",
+      "payload": {
+        "attendeeId": "TICKET-103",
+        "name": "Robin Lee"
+      },
+      "createdAt": "2026-11-02T12:55:29.740Z"
+    }
+  ]
+}
