@@ -16,6 +16,9 @@ Both apps share immutable event union, namespace validation, QR transport and
 camera lifecycle. Their distinct interfaces live in `apps/reception` and
 `apps/lending`. No account or data backend is required at runtime.
 
+[Reuse the starter with Kiro](STARTER.md) explains the shared modules, adaptation
+steps and the completed specification-guided camera extension.
+
 ## Run locally
 
 Requires Node.js 24 or newer.
