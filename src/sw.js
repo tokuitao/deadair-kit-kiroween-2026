@@ -1,5 +1,5 @@
 const CACHE = 'deadair-v1-prototype-001';
-const FILES = ['./', './index.html', './field.css', './app.mjs', './camera.mjs', './engine.mjs', './lending.mjs', './transport.mjs', './vendor/qrcode.js', './vendor/jsQR.js', './apps/reception/', './apps/reception/index.html', './apps/lending/', './apps/lending/index.html'];
+const FILES = ['./', './index.html', './field.css', './app.mjs', './camera.mjs', './qr-sequence.mjs', './engine.mjs', './lending.mjs', './transport.mjs', './vendor/qrcode.js', './vendor/jsQR.js', './apps/reception/', './apps/reception/index.html', './apps/lending/', './apps/lending/index.html'];
 self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', event => { event.waitUntil(self.clients.claim()); });
 self.addEventListener('fetch', event => {

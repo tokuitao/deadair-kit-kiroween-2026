@@ -26,3 +26,9 @@ and `npm run build` succeeded. Synthetic browser video/QR validation passed.
 - [ ] 13. Physical phone/camera handoff validation. Not performed by media stubs.
 Multi-QR capacity is a separate next increment, based on a measured 10-record
 single-QR overflow. No physical verification or formal submission is claimed.
+
+## QR sequence follow-up
+Continuous scanning now awaits one frame handler and continues only for an
+incomplete collection. Two lifecycle regressions were added; the current complete
+suite passes 49 tests. Actual generated QR images and synthetic video transferred
+50 exact records across isolated origins with the source server stopped.

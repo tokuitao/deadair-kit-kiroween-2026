@@ -15,7 +15,7 @@ QR without moving an image file. Keep image/JSON import available.
    unavailable cameras and playback errors, with an image/JSON fallback.
 3. While starting or scanning, the operator MUST be able to stop. When a pending
    permission request resolves after stop, every returned track MUST be stopped.
-4. On successful decode, manual stop, document hidden, pagehide or camera error,
+4. On a completed handoff, manual stop, document hidden, pagehide or camera error,
    the app MUST stop all tracks and release srcObject and scheduled work.
 5. A decoded code MUST use the existing readEnvelope/preview path. Scanning
    MUST NOT import records automatically or skip app/workspace validation.
@@ -34,3 +34,8 @@ QR without moving an image file. Keep image/JSON import available.
 No new dependencies, accounts, paid APIs, microphone, record backend, peer
 authentication, multi-QR protocol or framework rewrite in this increment.
 Work only in this repository. Do not read parent directories or credentials.
+
+## QR sequence extension
+A decoded part now goes through an awaited collector. Explicit true continues
+scanning while parts remain incomplete. Completion/error stops the camera; a
+reset invalidates old async results. This extends the original single-QR scope.

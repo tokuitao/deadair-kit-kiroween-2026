@@ -17,8 +17,9 @@ and ended-stream errors stop tracks and offer an image/JSON fallback.
 
 The video-only request prefers the environment camera and a 1280×720 source.
 Decoding is local, throttled to 120 ms, and sampled at a maximum 960 px dimension.
-On a decode, hardware is released before the application validates the text.
-Validation errors leave the scanner idle and display the specific import error.
+A decoded frame goes through one awaited validation callback. Only explicit true
+continues the loop for an incomplete sequence. Completion, validation failure or
+manual stop releases tracks. Generation checks after await protect newer sessions.
 
 ## User interface and import
 Both apps share the scanner and the same controls. Start is explicit; stop is
@@ -31,7 +32,7 @@ No audio, frames or records are uploaded. Image/JSON import remains available.
 ## Offline and checks
 camera.mjs is precached. Service-worker requests read only the current revision
 cache so an older cache cannot shadow updated assets.
-Nine media-stub tests cover cleanup, denial, unavailability, overlapping starts,
+Eleven media-stub tests cover cleanup, denial, unavailability, overlapping starts,
 pending playback, playback failure and decode errors. A browser canvas-stream
 check exercises real video playback, jsQR Unicode decoding, preview, confirmation
 and denial fallback. These are synthetic checks; physical cameras and phones

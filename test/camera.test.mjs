@@ -58,6 +58,7 @@ function makeHarness({ video, jsqrResult, getUserMediaImpl }) {
   return {
     deps: { getUserMedia: getUserMediaImpl, jsQR, requestAnimationFrame, cancelAnimationFrame, video, createCanvas: () => fakeCanvas },
     getRafCallback: () => rafCallback,
+    stepFrame: () => { const callback = rafCallback; rafCallback = null; callback?.(); },
   };
 }
 
@@ -133,6 +134,7 @@ test('successful decoding: onDecode called, tracks stopped, srcObject null, loop
   const rafCb = harness.getRafCallback();
   if (rafCb && decoded === null) rafCb();
 
+  await new Promise(setImmediate);
   assert.equal(decoded, decodedData, 'onDecode received the decoded data');
   assert.ok(stream._tracks.every(t => t.stopped), 'tracks stopped after decode');
   assert.equal(video.srcObject, null, 'srcObject released after decode');
@@ -228,4 +230,35 @@ test('decoder errors stop hardware rather than leaving a running camera', async 
   assert.equal(harness.getRafCallback(), null);
   assert.ok(stream._tracks.every(t => t.stopped));
   assert.ok(statuses.some(message => message.includes('Decode failed')));
+});
+
+test('multipart callback keeps scanning until the completed handoff returns false', async t => {
+  let clock = 1000, seen = 0;
+  t.mock.method(Date, 'now', () => clock);
+  const video = makeVideo(640, 480), stream = makeStream();
+  const harness = makeHarness({ video, jsqrResult: {data:'part'}, getUserMediaImpl: () => Promise.resolve(stream) });
+  const scanner = createCameraScanner(harness.deps);
+  await scanner.start(async () => ++seen < 2, () => {});
+  await new Promise(setImmediate);
+  assert.equal(seen, 1);
+  assert.equal(scanner.isActive(), true);
+  assert.ok(stream._tracks.every(t => !t.stopped));
+  clock += 200; harness.stepFrame();
+  await new Promise(setImmediate);
+  assert.equal(seen, 2);
+  assert.equal(scanner.isActive(), false);
+  assert.ok(stream._tracks.every(t => t.stopped));
+});
+
+test('stop during async frame validation cannot schedule another frame', async () => {
+  let completeValidation;
+  const video = makeVideo(640, 480), stream = makeStream();
+  const harness = makeHarness({ video, jsqrResult: {data:'part'}, getUserMediaImpl: () => Promise.resolve(stream) });
+  const scanner = createCameraScanner(harness.deps);
+  await scanner.start(() => new Promise(resolve => { completeValidation = resolve; }), () => {});
+  scanner.stop(); completeValidation(true);
+  await new Promise(setImmediate);
+  assert.equal(scanner.isActive(), false);
+  assert.equal(harness.getRafCallback(), null);
+  assert.ok(stream._tracks.every(t => t.stopped));
 });

@@ -44,16 +44,21 @@ Never claim global double-allocation prevention while disconnected.
 
 ## Transport and build
 - Actual QR encoding uses qrcode-generator 2.0.4. PNG import uses jsQR 1.4.0.
-- QR limit: 1,600 UTF-8 bytes. JSON fallback: 500 KB and 1,000 operations.
+- QR frames: 1,600 UTF-8 bytes each, at most 64 × 1000 base64 characters.
+- qr-sequence.mjs offers optional native deflate, SHA-256 and bounded reassembly.
+- Decompressed/JSON limit: 500 KB and 1,000 operations; raw QR remains available.
+- Preserve legacy single-QR and JSON compatibility; preview only after every part validates.
 - App/workspace validation and preview happen before import commits.
 - Use textContent for user/imported data.
 - npm run build creates dist with local vendor assets and their licenses.
 - npm test runs domain and transport tests.
 - Initial connected loading is required for the service worker cache.
 - Live camera scanning is explicit, local, video-only, and shares import validation.
-- Stop tracks on cancel (including late permission results), hidden/pagehide, decode and errors.
+- Stop tracks on cancel (including late permission results), hidden/pagehide, completed handoffs and errors.
 - Camera logic is in camera.mjs. Physical-camera validation and authenticated/encrypted peer exchange are pending.
-- Ten typical attendee records exceed one QR; bounded multi-QR transfer is the next practical-scope requirement.
+- Fifty typical Japanese attendee records fit three compressed parts in measured QA.
+- Partial parts are in memory only. Stop keeps them; Reset/reload discards them.
+- Await one frame handler at a time. Only explicit true continues scanning; reset invalidates old results.
 
 ## Working boundaries
 Work only in this checkout. Do not read parent history, unrelated projects,
