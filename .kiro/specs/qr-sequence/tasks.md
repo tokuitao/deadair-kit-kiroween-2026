@@ -6,5 +6,5 @@
 - [x] Wire sender controls, progress/reset, explicit import and continuous camera.
 - [x] Measure 50-record capacity: three compressed or nineteen raw parts.
 - [x] Complete independent-origin image/video handoff and exact-content verification.
-- [ ] Read back the public deployment and map its source commit.
+- [x] Read back the public deployment and map its source commit.
 - [ ] Physical phone/camera validation.
