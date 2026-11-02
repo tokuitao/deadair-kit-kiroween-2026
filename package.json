@@ -1,0 +1,17 @@
+{
+  "name": "deadair-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline field apps with auditable QR handoff",
+  "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "preview": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "jsqr": "1.4.0",
+    "qrcode-generator": "2.0.4"
+  }
+}
