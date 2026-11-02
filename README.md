@@ -6,6 +6,11 @@ Built as a new Kiroween 2026 project.
 
 [Open the prototype](https://tokuitao.github.io/deadair-kit-kiroween-2026/) · [Reception](https://tokuitao.github.io/deadair-kit-kiroween-2026/apps/reception/) · [Equipment lending](https://tokuitao.github.io/deadair-kit-kiroween-2026/apps/lending/)
 
+[Watch the 2-minute-20-second English-captioned demo](https://www.youtube.com/watch?v=n2h0D3Z27H8).
+It shows real browser operation with sample records, QR image exchange between
+independent origins, a lending conflict and its explicit resolution. The video
+is silent; it does not present physical phone/camera testing.
+
 - **Reception:** check people in, find an attendee, and count each attendee once
   while retaining the original check-in trail.
 - **Equipment lending:** record loans and returns, then show overlapping loans
